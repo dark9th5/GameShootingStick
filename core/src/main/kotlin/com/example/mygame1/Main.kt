@@ -12,6 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Touchpad
 import com.badlogic.gdx.scenes.scene2d.ui.Touchpad.TouchpadStyle
 import com.badlogic.gdx.math.MathUtils
+import com.badlogic.gdx.math.Vector2
 import com.example.mygame1.entities.Player
 import ktx.app.KtxScreen
 import ktx.app.KtxGame
@@ -40,19 +41,18 @@ class FirstScreen : KtxScreen {
     // Touchpad
     private lateinit var touchpad: Touchpad
 
-    // Star Field variables - ĐÃ SỬA
-    private val starCount = 300 // Tăng số lượng sao
+    // Star Field variables - TỐC ĐỘ CỐ ĐỊNH NHƯ CŨ
+    private val starCount = 400
     private val stars = mutableListOf<Star>()
     private lateinit var starTexture: Texture
 
     data class Star(
-        var x: Float,
-        var y: Float,
+        var position: Vector2,
+        var velocity: Vector2,
         val size: Float,
-        var speedX: Float, // Thêm di chuyển theo trục X
-        var speedY: Float,
         val brightness: Float,
-        var direction: Int // Hướng di chuyển: 0 = từ trên, 1 = từ dưới, 2 = từ trái, 3 = từ phải
+        var rotation: Float,
+        val rotationSpeed: Float
     )
 
     init {
@@ -69,81 +69,64 @@ class FirstScreen : KtxScreen {
     }
 
     private fun setupTouchpad() {
-        // Skin mặc định cho touchpad
         val skin = Skin()
-        skin.add("touchBackground", Texture("control/joystick_circle_pad_c.png"))
-        skin.add("touchKnob", Texture("control/joystick_circle_nub_b.png"))
+        val backgroundTexture = Texture("control/joystick_circle_pad_c.png")
+        val knobTexture = Texture("control/joystick_circle_nub_b.png")
 
+        skin.add("touchBackground", backgroundTexture)
+        skin.add("touchKnob", knobTexture)
 
-        touchpad = Touchpad(10f, TouchpadStyle().apply {
+        val touchpadStyle = TouchpadStyle().apply {
             background = skin.getDrawable("touchBackground")
             knob = skin.getDrawable("touchKnob")
-        })
-        touchpad.setBounds(50f, 50f, 150f, 150f)
+        }
+
+        // JOYSTICK TO GẤP ĐÔI VÀ CÁCH XA VIỀN GẤP ĐÔI
+        val touchpadSize = 300f // Gấp đôi 150f
+        val margin = 100f // Gấp đôi 50f
+
+        touchpad = Touchpad(10f, touchpadStyle)
+        touchpad.setBounds(margin, margin, touchpadSize, touchpadSize)
         stage.addActor(touchpad)
     }
 
     private fun setupStarField() {
-        // Tạo texture cho sao lớn hơn
-        val pixmap = com.badlogic.gdx.graphics.Pixmap(4, 4, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888)
+        // Tạo texture cho sao
+        val pixmap = com.badlogic.gdx.graphics.Pixmap(8, 8, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888)
         pixmap.setColor(Color.WHITE)
-        pixmap.fill()
+
+        for (i in 0 until 8) {
+            for (j in 0 until 8) {
+                if (MathUtils.randomBoolean(0.7f)) {
+                    pixmap.drawPixel(i, j)
+                }
+            }
+        }
         starTexture = Texture(pixmap)
         pixmap.dispose()
 
-        // Khởi tạo các ngôi sao từ cả 4 hướng
         val mapWidth = getMapWidth()
         val mapHeight = getMapHeight()
 
         repeat(starCount) {
-            val direction = MathUtils.random(0, 3) // Random từ 0-3 cho 4 hướng
+            val posX = MathUtils.random(-200f, mapWidth + 200f)
+            val posY = MathUtils.random(-200f, mapHeight + 200f)
 
-            when (direction) {
-                0 -> { // Từ trên xuống
-                    stars.add(Star(
-                        x = MathUtils.random(-100f, mapWidth + 100f),
-                        y = mapHeight + MathUtils.random(0f, 200f),
-                        size = MathUtils.random(2f, 6f), // Kích thước lớn hơn
-                        speedX = MathUtils.random(-1f, 1f) * 0.5f, // Di chuyển ngang nhẹ
-                        speedY = -MathUtils.random(1f, 3f), // Tốc độ rơi
-                        brightness = MathUtils.random(0.4f, 1f),
-                        direction = direction
-                    ))
-                }
-                1 -> { // Từ dưới lên
-                    stars.add(Star(
-                        x = MathUtils.random(-100f, mapWidth + 100f),
-                        y = -MathUtils.random(0f, 200f),
-                        size = MathUtils.random(2f, 6f),
-                        speedX = MathUtils.random(-1f, 1f) * 0.5f,
-                        speedY = MathUtils.random(1f, 3f),
-                        brightness = MathUtils.random(0.4f, 1f),
-                        direction = direction
-                    ))
-                }
-                2 -> { // Từ trái sang
-                    stars.add(Star(
-                        x = -MathUtils.random(0f, 200f),
-                        y = MathUtils.random(-100f, mapHeight + 100f),
-                        size = MathUtils.random(2f, 6f),
-                        speedX = MathUtils.random(1f, 3f),
-                        speedY = MathUtils.random(-1f, 1f) * 0.5f,
-                        brightness = MathUtils.random(0.4f, 1f),
-                        direction = direction
-                    ))
-                }
-                3 -> { // Từ phải sang
-                    stars.add(Star(
-                        x = mapWidth + MathUtils.random(0f, 200f),
-                        y = MathUtils.random(-100f, mapHeight + 100f),
-                        size = MathUtils.random(2f, 6f),
-                        speedX = -MathUtils.random(1f, 3f),
-                        speedY = MathUtils.random(-1f, 1f) * 0.5f,
-                        brightness = MathUtils.random(0.4f, 1f),
-                        direction = direction
-                    ))
-                }
-            }
+            val angle = MathUtils.random(0f, 360f) * MathUtils.degreesToRadians
+            // TỐC ĐỘ CỐ ĐỊNH NHƯ CŨ (1-3 thay vì 1-6)
+            val speed = MathUtils.random(1f, 3f)
+
+            stars.add(Star(
+                position = Vector2(posX, posY),
+                velocity = Vector2(
+                    MathUtils.cos(angle) * speed,
+                    MathUtils.sin(angle) * speed
+                ),
+                size = MathUtils.random(1.5f, 8f),
+                brightness = MathUtils.random(0.3f, 1f),
+                rotation = MathUtils.random(0f, 360f),
+                rotationSpeed = MathUtils.random(-2f, 2f)
+            ))
         }
     }
 
@@ -158,67 +141,52 @@ class FirstScreen : KtxScreen {
     private fun updateStars(delta: Float) {
         val mapWidth = getMapWidth()
         val mapHeight = getMapHeight()
-        val margin = 200f // Khoảng cách reset sao
+        val margin = 300f
 
         stars.forEach { star ->
-            // Di chuyển sao theo cả 2 trục
-            star.x += star.speedX * delta * 80f
-            star.y += star.speedY * delta * 80f
+            // TỐC ĐỘ CỐ ĐỊNH NHƯ CŨ (80f thay vì 60f)
+            star.position.x += star.velocity.x * delta * 80f
+            star.position.y += star.velocity.y * delta * 80f
 
-            // Reset sao khi ra khỏi màn hình với khoảng cách xa hơn
-            when (star.direction) {
-                0 -> { // Từ trên xuống
-                    if (star.y < -margin || star.x < -margin || star.x > mapWidth + margin) {
-                        resetStar(star, mapWidth, mapHeight)
-                    }
-                }
-                1 -> { // Từ dưới lên
-                    if (star.y > mapHeight + margin || star.x < -margin || star.x > mapWidth + margin) {
-                        resetStar(star, mapWidth, mapHeight)
-                    }
-                }
-                2 -> { // Từ trái sang
-                    if (star.x > mapWidth + margin || star.y < -margin || star.y > mapHeight + margin) {
-                        resetStar(star, mapWidth, mapHeight)
-                    }
-                }
-                3 -> { // Từ phải sang
-                    if (star.x < -margin || star.y < -margin || star.y > mapHeight + margin) {
-                        resetStar(star, mapWidth, mapHeight)
-                    }
-                }
-            }
-        }
-    }
+            star.rotation += star.rotationSpeed * delta * 30f
+            if (star.rotation > 360f) star.rotation -= 360f
+            if (star.rotation < 0f) star.rotation += 360f
 
-    private fun resetStar(star: Star, mapWidth: Float, mapHeight: Float) {
-        val newDirection = MathUtils.random(0, 3)
-        star.direction = newDirection
+            // Thỉnh thoảng thay đổi hướng bay ngẫu nhiên
+            if (MathUtils.random(100) < 5) {
+                val angle = MathUtils.random(0f, 360f) * MathUtils.degreesToRadians
+                // Giữ nguyên tốc độ, chỉ thay đổi hướng
+                star.velocity.set(
+                    MathUtils.cos(angle) * star.velocity.len(),
+                    MathUtils.sin(angle) * star.velocity.len()
+                )
+            }
 
-        when (newDirection) {
-            0 -> { // Từ trên xuống
-                star.x = MathUtils.random(-100f, mapWidth + 100f)
-                star.y = mapHeight + MathUtils.random(0f, 200f)
-                star.speedX = MathUtils.random(-1f, 1f) * 0.8f
-                star.speedY = -MathUtils.random(2f, 5f) // Tốc độ nhanh hơn
-            }
-            1 -> { // Từ dưới lên
-                star.x = MathUtils.random(-100f, mapWidth + 100f)
-                star.y = -MathUtils.random(0f, 200f)
-                star.speedX = MathUtils.random(-1f, 1f) * 0.8f
-                star.speedY = MathUtils.random(2f, 5f)
-            }
-            2 -> { // Từ trái sang
-                star.x = -MathUtils.random(0f, 200f)
-                star.y = MathUtils.random(-100f, mapHeight + 100f)
-                star.speedX = MathUtils.random(2f, 5f)
-                star.speedY = MathUtils.random(-1f, 1f) * 0.8f
-            }
-            3 -> { // Từ phải sang
-                star.x = mapWidth + MathUtils.random(0f, 200f)
-                star.y = MathUtils.random(-100f, mapHeight + 100f)
-                star.speedX = -MathUtils.random(2f, 5f)
-                star.speedY = MathUtils.random(-1f, 1f) * 0.8f
+            // Reset sao nếu bay quá xa
+            if (star.position.x < -margin || star.position.x > mapWidth + margin ||
+                star.position.y < -margin || star.position.y > mapHeight + margin) {
+
+                if (star.position.x < -margin) star.position.x = mapWidth + MathUtils.random(0f, 100f)
+                else if (star.position.x > mapWidth + margin) star.position.x = -MathUtils.random(0f, 100f)
+                else if (star.position.y < -margin) star.position.y = mapHeight + MathUtils.random(0f, 100f)
+                else if (star.position.y > mapHeight + margin) star.position.y = -MathUtils.random(0f, 100f)
+
+                else {
+                    star.position.set(
+                        MathUtils.random(-100f, mapWidth + 100f),
+                        MathUtils.random(-100f, mapHeight + 100f)
+                    )
+                }
+
+                // Đôi khi thay đổi hướng bay khi reset
+                if (MathUtils.randomBoolean(0.3f)) {
+                    val newAngle = MathUtils.random(0f, 360f) * MathUtils.degreesToRadians
+                    // TỐC ĐỘ CỐ ĐỊNH NHƯ CŨ
+                    star.velocity.set(
+                        MathUtils.cos(newAngle) * MathUtils.random(1f, 3f),
+                        MathUtils.sin(newAngle) * MathUtils.random(1f, 3f)
+                    )
+                }
             }
         }
     }
@@ -228,14 +196,32 @@ class FirstScreen : KtxScreen {
             stars.forEach { star ->
                 val color = Color(star.brightness, star.brightness, star.brightness, 1f)
                 it.color = color
-                it.draw(starTexture, star.x, star.y, star.size, star.size)
+
+                it.draw(
+                    starTexture,
+                    star.position.x - star.size/2,
+                    star.position.y - star.size/2,
+                    star.size/2,
+                    star.size/2,
+                    star.size,
+                    star.size,
+                    1f,
+                    1f,
+                    star.rotation,
+                    0,
+                    0,
+                    starTexture.width,
+                    starTexture.height,
+                    false,
+                    false
+                )
             }
-            it.color = Color.WHITE // Reset color
+            it.color = Color.WHITE
         }
     }
 
     override fun render(delta: Float) {
-        clearScreen(0.08f, 0.08f, 0.12f) // Màu nền tối hơn
+        clearScreen(0.06f, 0.06f, 0.1f)
 
         // Cập nhật các ngôi sao
         updateStars(delta)
