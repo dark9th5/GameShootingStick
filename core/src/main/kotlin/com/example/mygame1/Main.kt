@@ -74,10 +74,6 @@ class FirstScreen : KtxScreen {
         skin.add("touchBackground", Texture("control/joystick_circle_pad_c.png"))
         skin.add("touchKnob", Texture("control/joystick_circle_nub_b.png"))
 
-        val touchpadStyle = TouchpadStyle().apply {
-            background = skin.getDrawable("touchBackground")
-            knob = skin.getDrawable("touchKnob")
-        }
 
         touchpad = Touchpad(10f, TouchpadStyle().apply {
             background = skin.getDrawable("touchBackground")
