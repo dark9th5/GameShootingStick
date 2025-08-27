@@ -20,11 +20,10 @@ class GameScreen(private val game: Main) : KtxScreen {
 
     private var paused = false
 
-    init {
-        Gdx.input.inputProcessor = stage
-    }
+
 
     override fun show() {
+        Gdx.input.inputProcessor = stage
         AudioManager.playMusic("sounds/game_music.mp3")
     }
 

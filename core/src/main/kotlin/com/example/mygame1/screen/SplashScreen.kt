@@ -2,6 +2,9 @@ package com.example.mygame1.screen
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.g2d.GlyphLayout
+import com.badlogic.gdx.graphics.Color
 import com.example.mygame1.Main
 import ktx.app.KtxScreen
 import ktx.app.clearScreen
@@ -12,6 +15,13 @@ class SplashScreen(private val game: Main) : KtxScreen {
     private var elapsed = 0f
     private val logo = Texture("logo/Logo.png")
     private val background = Texture(Gdx.files.internal("background/splash_bg.png"))
+
+    // Font chữ to hơn
+    private val font = BitmapFont().apply {
+        data.setScale(3f) // tăng scale từ 2f -> 3f
+        color = Color.WHITE
+    }
+    private val layout = GlyphLayout()
 
     private val screenRatio = Gdx.graphics.width.toFloat() / Gdx.graphics.height
     private val imageRatio = background.width.toFloat() / background.height
@@ -36,7 +46,7 @@ class SplashScreen(private val game: Main) : KtxScreen {
         }
 
         game.batch.use { batch ->
-            // Vẽ background (giữ tỉ lệ, căn giữa màn hình)
+            // Vẽ background
             batch.draw(
                 background,
                 (Gdx.graphics.width - drawWidth) / 2f,
@@ -45,18 +55,29 @@ class SplashScreen(private val game: Main) : KtxScreen {
                 drawHeight
             )
 
-            // Vẽ logo, auto scale chiếm 30% chiều rộng màn hình
+            // Tính toán kích thước logo
             val targetWidth = Gdx.graphics.width * 0.3f
             val logoScale = targetWidth / logo.width
             val targetHeight = logo.height * logoScale
+            val logoX = (Gdx.graphics.width - targetWidth) / 2f
+            val logoY = (Gdx.graphics.height - targetHeight) / 2f
 
+            // Vẽ logo
             batch.draw(
                 logo,
-                (Gdx.graphics.width - targetWidth) / 2f,
-                (Gdx.graphics.height - targetHeight) / 2f,
+                logoX,
+                logoY,
                 targetWidth,
                 targetHeight
             )
+
+            // Vẽ chữ "Survival - Die" gần logo hơn
+            val text = "Survival - Die"
+            layout.setText(font, text)
+            val textX = (Gdx.graphics.width - layout.width) / 2f
+            val textY = logoY - 10f // gần hơn: 10px thay vì 20px
+
+            font.draw(batch, layout, textX, textY)
         }
 
         // Sau 5 giây chuyển sang MainMenuScreen
@@ -68,5 +89,6 @@ class SplashScreen(private val game: Main) : KtxScreen {
     override fun dispose() {
         background.dispose()
         logo.dispose()
+        font.dispose()
     }
 }

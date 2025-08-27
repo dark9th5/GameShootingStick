@@ -21,7 +21,6 @@ class Main : KtxGame<KtxScreen>() {
         addScreen(PauseMenuScreen(this))
 
     }
-
     override fun dispose() {
         super.dispose()
         AudioManager.dispose()

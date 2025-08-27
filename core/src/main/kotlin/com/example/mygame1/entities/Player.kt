@@ -17,7 +17,6 @@ class Player {
     var position = Vector2(100f, 100f)
 
     var health: Int = 100
-        private set
 
     private val speed = 100f
 
@@ -32,6 +31,7 @@ class Player {
     ) {
         val dx = input.dx
         val dy = input.dy
+
 
         if (dx != 0f || dy != 0f) {
             val angle = MathUtils.atan2(dy, dx)
