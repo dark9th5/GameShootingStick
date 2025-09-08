@@ -7,7 +7,6 @@ import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
 import ktx.assets.disposeSafely
-import ktx.graphics.use
 
 class StarField(
     private val starCount: Int = 400
@@ -89,31 +88,30 @@ class StarField(
     }
 
     fun render(batch: SpriteBatch) {
-        batch.use {
-            for (star in stars) {
-                val color = Color(star.brightness, star.brightness, star.brightness, 1f)
-                it.color = color
-                it.draw(
-                    starTexture,
-                    star.position.x - star.size / 2,
-                    star.position.y - star.size / 2,
-                    star.size / 2,
-                    star.size / 2,
-                    star.size,
-                    star.size,
-                    1f,
-                    1f,
-                    star.rotation,
-                    0,
-                    0,
-                    starTexture.width,
-                    starTexture.height,
-                    false,
-                    false
-                )
-            }
-            it.color = Color.WHITE
+        // KHÔNG gọi batch.use hoặc batch.begin/end ở đây!
+        for (star in stars) {
+            val color = Color(star.brightness, star.brightness, star.brightness, 1f)
+            batch.color = color
+            batch.draw(
+                starTexture,
+                star.position.x - star.size / 2,
+                star.position.y - star.size / 2,
+                star.size / 2,
+                star.size / 2,
+                star.size,
+                star.size,
+                1f,
+                1f,
+                star.rotation,
+                0,
+                0,
+                starTexture.width,
+                starTexture.height,
+                false,
+                false
+            )
         }
+        batch.color = Color.WHITE
     }
 
     fun dispose() {
