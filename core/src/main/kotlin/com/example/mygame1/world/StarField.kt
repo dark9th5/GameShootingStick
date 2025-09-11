@@ -3,16 +3,16 @@ package com.example.mygame1.world
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
-import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.math.Vector2
 import ktx.assets.disposeSafely
 
 class StarField(
-    private val starCount: Int = 400
+    private val starCount: Int = 400,
+    private val sizeScale: Float = 1f // mặc định không giảm kích thước
 ) {
-    private val stars = mutableListOf<Star>()
-    private val starTexture: Texture
+    val stars = mutableListOf<Star>()
+    val starTexture: Texture
 
     data class Star(
         var position: Vector2,
@@ -24,16 +24,7 @@ class StarField(
     )
 
     init {
-        val pixmap = Pixmap(8, 8, Pixmap.Format.RGBA8888).apply {
-            setColor(Color.WHITE)
-            for (i in 0 until 8) {
-                for (j in 0 until 8) {
-                    if (MathUtils.randomBoolean(0.7f)) drawPixel(i, j)
-                }
-            }
-        }
-        starTexture = Texture(pixmap)
-        pixmap.dispose()
+        starTexture = Texture("snowflake/snowflake.png") // File ảnh PNG trong suốt
     }
 
     fun update(delta: Float, mapWidth: Float, mapHeight: Float) {
@@ -63,11 +54,14 @@ class StarField(
         val posY = MathUtils.random(0f, mapHeight)
         val angle = MathUtils.random(0f, 360f) * MathUtils.degreesToRadians
         val speed = MathUtils.random(1f, 3f)
+        // size gốc: 32f~64f, nhân sizeScale
+        val baseMinSize = 32f
+        val baseMaxSize = 64f
         return Star(
             position = Vector2(posX, posY),
             velocity = Vector2(MathUtils.cos(angle) * speed, MathUtils.sin(angle) * speed),
-            size = MathUtils.random(1.5f, 8f),
-            brightness = MathUtils.random(0.3f, 1f),
+            size = MathUtils.random(baseMinSize, baseMaxSize) * sizeScale,
+            brightness = MathUtils.random(0.5f, 1f),
             rotation = MathUtils.random(0f, 360f),
             rotationSpeed = MathUtils.random(-2f, 2f)
         )
@@ -78,17 +72,17 @@ class StarField(
         val posY = MathUtils.random(0f, mapHeight)
         val angle = MathUtils.random(0f, 360f) * MathUtils.degreesToRadians
         val speed = MathUtils.random(1f, 3f)
-
+        val baseMinSize = 32f
+        val baseMaxSize = 64f
         star.position.set(posX, posY)
         star.velocity.set(MathUtils.cos(angle) * speed, MathUtils.sin(angle) * speed)
-        star.size = MathUtils.random(1.5f, 8f)
-        star.brightness = MathUtils.random(0.3f, 1f)
+        star.size = MathUtils.random(baseMinSize, baseMaxSize) * sizeScale
+        star.brightness = MathUtils.random(0.5f, 1f)
         star.rotation = MathUtils.random(0f, 360f)
         star.rotationSpeed = MathUtils.random(-2f, 2f)
     }
 
     fun render(batch: SpriteBatch) {
-        // KHÔNG gọi batch.use hoặc batch.begin/end ở đây!
         for (star in stars) {
             val color = Color(star.brightness, star.brightness, star.brightness, 1f)
             batch.color = color

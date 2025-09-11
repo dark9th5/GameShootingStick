@@ -30,14 +30,15 @@ class Bullet(
     val position: Vector2,
     val direction: Vector2,
     val owner: BulletOwner,
-    val speed: Float = 200f,
+    val speed: Float = 100f,
     val maxDistance: Float = 600f,
     val size: Float = 8f,
     val damage: Int = 10
 ) {
     private val texture = Texture(type.assetPath)
     private val sprite = Sprite(texture).apply { setOriginCenter() }
-    private val velocity = direction.nor().scl(speed)
+    // Tốc độ theo hướng đã chuẩn hóa
+    private val velocity = direction.cpy().nor().scl(speed)
 
     var isActive = true
 
@@ -48,22 +49,29 @@ class Bullet(
         updateSpritePosition()
     }
 
-    // Sửa lại để viên đạn thành hình bầu dục (kéo dãn chiều ngang gấp đôi)
+    // Đặt vị trí sprite đúng tâm viên đạn, xoay theo hướng bay
     private fun updateSpritePosition() {
         sprite.setSize(size * 2f, size) // Chiều ngang gấp đôi chiều dọc
+        sprite.setOriginCenter()
+        // Vẽ sprite tại vị trí tâm (position)
         sprite.setPosition(
             position.x - sprite.width / 2f,
             position.y - sprite.height / 2f
         )
-        sprite.rotation = direction.angleDeg()
+        // Nếu texture gốc của viên đạn hướng phải thì dùng angle bình thường
+        // Nếu texture gốc hướng lên thì cộng thêm 90 độ
+        sprite.rotation = direction.angleDeg() // nếu hướng phải
+        // sprite.rotation = direction.angleDeg() + 90f // nếu hướng lên (bỏ comment nếu cần)
     }
 
     fun bounds(): Rectangle {
+        val bulletWidth = size * 0.5f // hoặc 1f nếu muốn sát nhất
+        val bulletHeight = size * 0.5f
         return Rectangle(
-            position.x - sprite.width / 2f,
-            position.y - sprite.height / 2f,
-            sprite.width,
-            sprite.height
+            position.x - bulletWidth / 2f,
+            position.y - bulletHeight / 2f,
+            bulletWidth,
+            bulletHeight
         )
     }
 

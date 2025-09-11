@@ -21,17 +21,21 @@ class Enemy(
     private var currentCharacterIndex =
         if (characterIndex in characterTextures.indices) characterIndex else Random.nextInt(characterTextures.size)
     private var texture = Texture(characterTextures[currentCharacterIndex].toInternalFile())
-    val sprite = Sprite(texture)
+    val sprite = Sprite(texture).apply { setOriginCenter() }
     var position = spawnPosition.cpy()
     var health: Int = 100
     val maxHealth: Int = 100
-    val speed = 60f
+    val speed = 50f
 
-    val bullets = mutableListOf<Bullet>()
-    val maxBullets = 10
+    val maxBullets = 20
+    var ammoInMagazine = maxBullets
     var isReloading = false
     private var reloadTimer = 0f
-    private val reloadTime = 2f
+    private var reloadTarget = maxBullets
+    private val reloadTimePerBullet = 0.1f
+    private val reloadTimeFull = 2f
+
+    val bullets = mutableListOf<Bullet>()
 
     val weapons: List<Weapon> = listOf(
         Weapon(GunType.Gun),
@@ -52,6 +56,7 @@ class Enemy(
             texture.disposeSafely()
             texture = Texture(characterTextures[currentCharacterIndex].toInternalFile())
             sprite.setTexture(texture)
+            sprite.setOriginCenter()
         }
     }
 
@@ -68,14 +73,14 @@ class Enemy(
         mapWidth: Float = 800f,
         mapHeight: Float = 600f
     ) {
-        if (bullets.size >= maxBullets && !isReloading) {
-            isReloading = true
-            reloadTimer = reloadTime
+        // Tự động reload khi hết đạn
+        if (ammoInMagazine == 0 && !isReloading) {
+            manualReload(forceFull = true)
         }
         if (isReloading) {
             reloadTimer -= delta
             if (reloadTimer <= 0f) {
-                bullets.clear()
+                ammoInMagazine = reloadTarget
                 isReloading = false
             }
         }
@@ -85,8 +90,6 @@ class Enemy(
         when (val action = ai.decideAction(state)) {
             is EnemyAction.Move -> {
                 val dir = action.direction.nor()
-                position.x = (position.x + dir.x * speed * delta).coerceIn(0f, mapWidth - sprite.width)
-                position.y = (position.y + dir.y * speed * delta).coerceIn(0f, mapHeight - sprite.height)
                 sprite.rotation = dir.angleDeg()
             }
             is EnemyAction.Shoot -> {
@@ -104,7 +107,8 @@ class Enemy(
 
     fun render(batch: SpriteBatch, font: com.badlogic.gdx.graphics.g2d.BitmapFont? = null) {
         sprite.draw(batch)
-        weapon.render(batch, position, sprite.rotation)
+        val gunPos = getGunTipPosition()
+        weapon.render(batch, gunPos, sprite.rotation)
         bullets.forEach { it.render(batch) }
 
         val barWidth = sprite.width
@@ -118,18 +122,36 @@ class Enemy(
         batch.color = Color.GREEN
         batch.draw(blankTexture, barX, barY, barWidth * healthRatio, barHeight)
         batch.color = Color.WHITE
-
+        font?.color = Color.SALMON
         font?.draw(
             batch,
-            if (isReloading) "Đang nạp..." else "${bullets.size} / $maxBullets",
+            if (isReloading) "Reloading..." else "$ammoInMagazine / $maxBullets",
             barX,
             barY - 2f
         )
     }
 
+    // Lấy vị trí đầu súng giống player
+    private fun getGunTipPosition(): Vector2 {
+        // Offset từ tâm sprite đến đầu súng (giả sử cạnh phải giữa)
+        val gunOffsetX = sprite.width / 2f
+        val gunOffsetY = 0f
+        val angleRad = sprite.rotation * MathUtils.degreesToRadians
+
+        val rotatedOffsetX = gunOffsetX * MathUtils.cos(angleRad) - gunOffsetY * MathUtils.sin(angleRad)
+        val rotatedOffsetY = gunOffsetX * MathUtils.sin(angleRad) + gunOffsetY * MathUtils.cos(angleRad)
+
+        val centerX = position.x + sprite.width / 2f
+        val centerY = position.y + sprite.height / 2f
+        return Vector2(
+            centerX + rotatedOffsetX,
+            centerY + rotatedOffsetY
+        )
+    }
+
     fun attack() {
         val stats = getGunStats(weapon.type)
-        if (isReloading || bullets.size >= maxBullets) return
+        if (isReloading || ammoInMagazine == 0) return
         if (shootCooldown > 0f) return
 
         val bulletType = when (weapon.type) {
@@ -137,10 +159,7 @@ class Enemy(
             GunType.Machine -> BulletType.Machine
             GunType.Silencer -> BulletType.Silencer
         }
-        val bulletStart = Vector2(
-            position.x + sprite.width / 2f,
-            position.y + sprite.height / 2f
-        )
+        val bulletStart = getGunTipPosition()
         val angleRad = sprite.rotation * MathUtils.degreesToRadians
         val direction = Vector2(MathUtils.cos(angleRad), MathUtils.sin(angleRad))
 
@@ -155,8 +174,17 @@ class Enemy(
                 damage = stats.damage
             )
         )
-
+        ammoInMagazine--
         shootCooldown = 1f / stats.fireRate
+    }
+
+    // Gọi hàm này khi muốn reload thủ công cho enemy
+    fun manualReload(forceFull: Boolean = false) {
+        if (isReloading) return
+        if (ammoInMagazine == maxBullets) return
+        isReloading = true
+        reloadTarget = maxBullets
+        reloadTimer = if (forceFull) reloadTimeFull else (maxBullets - ammoInMagazine) * reloadTimePerBullet
     }
 
     fun takeDamage(amount: Int) {

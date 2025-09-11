@@ -13,7 +13,7 @@ enum class GunType(val displayName: String, val assetPath: String) {
 
 class Weapon(val type: GunType) {
     private val texture = Texture(type.assetPath)
-    private val sprite = Sprite(texture)
+    val sprite = Sprite(texture)
 
     fun render(batch: SpriteBatch, gunOrigin: Vector2, playerRotation: Float) {
         sprite.setOrigin(sprite.width / 2f, sprite.height / 2f)
